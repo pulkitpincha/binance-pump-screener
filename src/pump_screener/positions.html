@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Position Ledger — Pump Screener</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Saira+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #edf6ef;
+      --muted: #829188;
+      --void: #070a08;
+      --panel: #0d120f;
+      --raised: #121a15;
+      --line: #233128;
+      --acid: #b8ff35;
+      --green: #51e58b;
+      --red: #ff6a67;
+      --amber: #ffbd4a;
+      --cyan: #68e4dc;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--void); }
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "IBM Plex Mono", monospace;
+      background:
+        radial-gradient(900px 430px at 82% -8%, rgba(184,255,53,.10), transparent 60%),
+        repeating-linear-gradient(90deg, transparent 0 79px, rgba(255,255,255,.018) 80px),
+        repeating-linear-gradient(0deg, transparent 0 79px, rgba(255,255,255,.018) 80px),
+        var(--void);
+    }
+    button, input, select, a { font: inherit; }
+    button, select { color: inherit; }
+    .shell { width: min(1600px, 100%); margin: 0 auto; padding: 0 26px 60px; }
+    .masthead {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 30px;
+      align-items: end;
+      min-height: 190px;
+      padding: 42px 0 26px;
+      border-bottom: 1px solid var(--line);
+    }
+    .eyebrow {
+      margin-bottom: 6px;
+      color: var(--acid);
+      font-size: 11px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      font-family: "Saira Condensed", sans-serif;
+      font-size: clamp(52px, 7vw, 96px);
+      line-height: .78;
+      letter-spacing: -.035em;
+      text-transform: uppercase;
+    }
+    h1 span { color: transparent; -webkit-text-stroke: 1px #66806e; }
+    .feed {
+      display: grid;
+      justify-items: end;
+      gap: 8px;
+      padding-bottom: 3px;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .feed-status { display: flex; align-items: center; gap: 9px; color: var(--amber); }
+    .feed-status.live { color: var(--acid); }
+    .pulse {
+      width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+      box-shadow: 0 0 0 0 rgba(184,255,53,.45);
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse { 70% { box-shadow: 0 0 0 9px rgba(184,255,53,0); } }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(140px, 1fr));
+      border-bottom: 1px solid var(--line);
+    }
+    .metric {
+      min-height: 102px;
+      padding: 19px 20px 16px 0;
+      border-right: 1px solid var(--line);
+    }
+    .metric:not(:first-child) { padding-left: 20px; }
+    .metric:last-child { border-right: 0; }
+    .metric-label { color: var(--muted); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; }
+    .metric-value {
+      display: block;
+      margin-top: 9px;
+      font-family: "Saira Condensed", sans-serif;
+      font-size: 36px;
+      font-weight: 600;
+      line-height: 1;
+    }
+    .toolbar {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 22px 0;
+    }
+    .tabs { display: inline-flex; border: 1px solid var(--line); background: var(--panel); }
+    .tab {
+      min-width: 150px;
+      border: 0;
+      border-right: 1px solid var(--line);
+      padding: 12px 16px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 11px;
+    }
+    .tab:last-child { border-right: 0; }
+    .tab.active { color: var(--void); background: var(--acid); font-weight: 600; }
+    .tab.ignore.active { background: var(--amber); }
+    .tab-count { opacity: .7; margin-left: 8px; }
+    .search {
+      width: min(380px, 100%);
+      justify-self: end;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 4px;
+      background: transparent;
+      color: var(--ink);
+      outline: none;
+    }
+    .search:focus { border-color: var(--acid); }
+    .search::placeholder { color: #59655e; }
+    select {
+      border: 1px solid var(--line);
+      padding: 11px 34px 11px 12px;
+      background: var(--panel);
+      outline: none;
+    }
+    .ledger-head {
+      display: grid;
+      grid-template-columns: minmax(160px, 1.25fr) minmax(190px, 1.1fr) repeat(4, minmax(105px, .8fr)) 50px;
+      gap: 16px;
+      padding: 0 18px 10px;
+      color: var(--muted);
+      font-size: 9px;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .cards { display: grid; gap: 9px; }
+    .position {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(160px, 1.25fr) minmax(190px, 1.1fr) repeat(4, minmax(105px, .8fr)) 50px;
+      gap: 16px;
+      align-items: center;
+      min-height: 112px;
+      padding: 17px 18px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: linear-gradient(105deg, rgba(18,26,21,.96), rgba(10,14,12,.96));
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+    .position::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 3px;
+      background: var(--acid);
+      opacity: .75;
+    }
+    .cards.ignored .position::before { background: var(--amber); }
+    .position:hover { transform: translateX(4px); border-color: #3b5143; background: var(--raised); }
+    .symbol { font-family: "Saira Condensed", sans-serif; font-size: 31px; font-weight: 700; line-height: .9; }
+    .method { margin-top: 9px; color: var(--muted); font-size: 10px; text-transform: uppercase; }
+    .method strong { color: var(--cyan); font-weight: 500; }
+    .status { display: inline-block; margin-top: 8px; color: var(--muted); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+    .status.stopped { color: var(--red); }
+    .price-line { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .tiny-label { color: var(--muted); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+    .price { display: block; margin-top: 6px; color: var(--ink); font-size: 13px; }
+    .decision-time { margin-top: 9px; color: #637068; font-size: 9px; }
+    .cell strong { display: block; margin-top: 7px; font-size: 16px; font-weight: 500; }
+    .pnl strong { font-family: "Saira Condensed", sans-serif; font-size: 28px; font-weight: 600; }
+    .positive { color: var(--green) !important; }
+    .negative { color: var(--red) !important; }
+    .muted { color: var(--muted) !important; }
+    .chart-link {
+      display: grid;
+      place-items: center;
+      width: 40px; height: 40px;
+      border: 1px solid var(--line);
+      color: var(--acid);
+      text-decoration: none;
+      transition: .18s ease;
+    }
+    .cards.ignored .chart-link { color: var(--amber); }
+    .chart-link:hover { color: var(--void); background: currentColor; border-color: currentColor; }
+    .empty {
+      display: none;
+      min-height: 340px;
+      place-content: center;
+      text-align: center;
+      border: 1px dashed var(--line);
+      color: var(--muted);
+    }
+    .empty strong { display: block; margin-bottom: 8px; color: var(--ink); font-family: "Saira Condensed", sans-serif; font-size: 28px; }
+    .footnote { margin-top: 24px; color: #5d6861; font-size: 9px; line-height: 1.7; }
+    @media (max-width: 1100px) {
+      .ledger-head { display: none; }
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .position { grid-template-columns: repeat(2, 1fr); align-items: start; }
+      .position > :last-child { position: absolute; right: 16px; top: 16px; }
+    }
+    @media (max-width: 720px) {
+      .shell { padding-inline: 15px; }
+      .masthead { grid-template-columns: 1fr; min-height: 160px; }
+      .feed { justify-items: start; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .metric:nth-child(2) { border-right: 0; }
+      .toolbar { grid-template-columns: 1fr; }
+      .tabs { width: 100%; }
+      .tab { flex: 1; min-width: 0; }
+      .search { width: 100%; justify-self: stretch; }
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="masthead">
+      <div>
+        <div class="eyebrow">Long-only discretionary research</div>
+        <h1>Position <span>Ledger</span></h1>
+      </div>
+      <div class="feed">
+        <div id="feed-status" class="feed-status"><span class="pulse"></span><span>Connecting to Binance</span></div>
+        <div id="last-sync">Awaiting first price</div>
+      </div>
+    </header>
+
+    <section class="metrics" aria-label="Current selection summary">
+      <div class="metric"><span class="metric-label">Selected</span><strong id="count" class="metric-value">—</strong></div>
+      <div class="metric"><span class="metric-label">Green now</span><strong id="green" class="metric-value">—</strong></div>
+      <div class="metric"><span class="metric-label">Average since decision</span><strong id="average" class="metric-value">—</strong></div>
+      <div class="metric"><span class="metric-label">Best since decision</span><strong id="best" class="metric-value">—</strong></div>
+    </section>
+
+    <section class="toolbar">
+      <div class="tabs" role="tablist" aria-label="Decision type">
+        <button id="trade-tab" class="tab active" type="button" data-tab="TRADE">Trades <span id="trade-count" class="tab-count">0</span></button>
+        <button id="ignore-tab" class="tab ignore" type="button" data-tab="IGNORE">Ignored <span id="ignore-count" class="tab-count">0</span></button>
+      </div>
+      <input id="search" class="search" type="search" autocomplete="off" placeholder="Filter symbol or entry method…">
+      <select id="sort" aria-label="Sort positions">
+        <option value="newest">Newest decision</option>
+        <option value="pnl-high">Decision P&amp;L: high to low</option>
+        <option value="pnl-low">Decision P&amp;L: low to high</option>
+        <option value="symbol">Symbol: A to Z</option>
+      </select>
+    </section>
+
+    <div class="ledger-head" aria-hidden="true">
+      <span>Contract / trigger</span><span>Prices / decision</span><span>Since decision</span><span>Since signal</span><span>Research MFE</span><span>Research MAE</span><span></span>
+    </div>
+    <main id="cards" class="cards"></main>
+    <div id="empty" class="empty"><div><strong>Nothing in this ledger yet</strong><span>Your next decision will appear automatically.</span></div></div>
+    <p class="footnote">LIVE PRICE is independent of the screener’s research-monitoring status. “Since decision” uses the price stored when you pressed TRADE or IGNORE. Research MFE/MAE remains the screener’s compact tracked path and may stop at its configured monitoring cutoff.</p>
+  </div>
+
+  <script>
+    const state = { rows: [], tab: "TRADE", query: "", sort: "newest", firstRender: true };
+    const $ = id => document.getElementById(id);
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>'"]/g, character => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+      })[character]);
+    }
+    function formatPrice(value) {
+      if (!Number.isFinite(value)) return "—";
+      if (value >= 100) return value.toFixed(2);
+      if (value >= 1) return value.toFixed(4);
+      if (value >= .01) return value.toFixed(5);
+      return value.toPrecision(6);
+    }
+    function formatPct(value) {
+      if (!Number.isFinite(value)) return "—";
+      return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
+    }
+    function colorClass(value) {
+      if (!Number.isFinite(value) || Math.abs(value) < .005) return "muted";
+      return value > 0 ? "positive" : "negative";
+    }
+    function timeLabel(ms) {
+      if (!ms) return "—";
+      return new Intl.DateTimeFormat("en-IN", {
+        timeZone: "Asia/Kolkata", day: "2-digit", month: "short", hour: "2-digit",
+        minute: "2-digit", second: "2-digit", hour12: false
+      }).format(new Date(ms));
+    }
+    function delayLabel(seconds) {
+      if (!Number.isFinite(seconds)) return "—";
+      if (seconds < 60) return `${Math.round(seconds)}s after signal`;
+      return `${(seconds / 60).toFixed(1)}m after signal`;
+    }
+
+    function selectedRows() {
+      const query = state.query.trim().toUpperCase();
+      const rows = state.rows.filter(row => row.review_status === state.tab).filter(row => {
+        if (!query) return true;
+        return `${row.symbol} ${row.screener_type} ${row.entry_type}`.toUpperCase().includes(query);
+      });
+      rows.sort((a, b) => {
+        if (state.sort === "pnl-high") return (b.decision_return_pct ?? -Infinity) - (a.decision_return_pct ?? -Infinity);
+        if (state.sort === "pnl-low") return (a.decision_return_pct ?? Infinity) - (b.decision_return_pct ?? Infinity);
+        if (state.sort === "symbol") return a.symbol.localeCompare(b.symbol);
+        return (b.decision_time_ms ?? 0) - (a.decision_time_ms ?? 0);
+      });
+      return rows;
+    }
+
+    function render() {
+      const rows = selectedRows();
+      $("trade-count").textContent = state.rows.filter(row => row.review_status === "TRADE").length;
+      $("ignore-count").textContent = state.rows.filter(row => row.review_status === "IGNORE").length;
+      $("count").textContent = rows.length;
+      const returns = rows.map(row => row.decision_return_pct).filter(Number.isFinite);
+      const green = returns.filter(value => value > 0).length;
+      $("green").textContent = returns.length ? `${green}/${returns.length}` : "—";
+      const average = returns.length ? returns.reduce((total, value) => total + value, 0) / returns.length : null;
+      const best = returns.length ? Math.max(...returns) : null;
+      $("average").textContent = formatPct(average);
+      $("average").className = `metric-value ${colorClass(average)}`;
+      $("best").textContent = formatPct(best);
+      $("best").className = `metric-value ${colorClass(best)}`;
+
+      const cards = $("cards");
+      cards.className = `cards${state.tab === "IGNORE" ? " ignored" : ""}`;
+      cards.replaceChildren();
+      $("empty").style.display = rows.length ? "none" : "grid";
+      for (const row of rows) {
+        const article = document.createElement("article");
+        article.className = "position";
+        const method = row.entry_type.replaceAll("_", " ");
+        const tvUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(row.tradingview_symbol)}`;
+        article.innerHTML = `
+          <div>
+            <div class="symbol">${escapeHtml(row.symbol)}</div>
+            <div class="method"><strong>${escapeHtml(method)}</strong><br>${escapeHtml(row.screener_type.replaceAll("_", " "))}</div>
+            <span class="status ${row.status === "stopped" ? "stopped" : ""}">${escapeHtml(row.status)} research</span>
+          </div>
+          <div>
+            <div class="price-line">
+              <div><span class="tiny-label">Decision</span><strong class="price">${formatPrice(row.decision_price)}</strong></div>
+              <div><span class="tiny-label">Live</span><strong class="price">${formatPrice(row.live_price)}</strong></div>
+            </div>
+            <div class="decision-time">${timeLabel(row.decision_time_ms)} IST · ${delayLabel(row.decision_delay_seconds)}</div>
+          </div>
+          <div class="cell pnl"><span class="tiny-label">Decision P&amp;L</span><strong class="${colorClass(row.decision_return_pct)}">${formatPct(row.decision_return_pct)}</strong></div>
+          <div class="cell"><span class="tiny-label">Signal return</span><strong class="${colorClass(row.signal_return_pct)}">${formatPct(row.signal_return_pct)}</strong></div>
+          <div class="cell"><span class="tiny-label">Max upside</span><strong class="positive">${formatPct(row.research_max_upside_pct)}</strong></div>
+          <div class="cell"><span class="tiny-label">Max drawdown</span><strong class="${row.research_max_drawdown_pct >= 10 ? "negative" : ""}">-${row.research_max_drawdown_pct.toFixed(2)}%</strong></div>
+          <a class="chart-link" href="${tvUrl}" target="_blank" rel="noopener" title="Open ${escapeHtml(row.symbol)} in TradingView">↗</a>
+        `;
+        cards.appendChild(article);
+      }
+      state.firstRender = false;
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch("/api/positions", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        state.rows = payload.positions;
+        const feedAge = payload.price_update_ms == null ? Infinity : payload.server_time_ms - payload.price_update_ms;
+        const live = feedAge < 10_000;
+        $("feed-status").className = `feed-status${live ? " live" : ""}`;
+        $("feed-status").lastElementChild.textContent = live ? `Binance live · ${state.rows.length} decisions` : "Using screener snapshots";
+        $("last-sync").textContent = payload.price_update_ms ? `Tick ${timeLabel(payload.price_update_ms)} IST` : "Awaiting first price";
+        render();
+      } catch (error) {
+        $("feed-status").className = "feed-status";
+        $("feed-status").lastElementChild.textContent = "Dashboard reconnecting";
+      }
+    }
+
+    document.querySelectorAll(".tab").forEach(button => button.addEventListener("click", () => {
+      state.tab = button.dataset.tab;
+      document.querySelectorAll(".tab").forEach(item => item.classList.toggle("active", item === button));
+      render();
+    }));
+    $("search").addEventListener("input", event => { state.query = event.target.value; render(); });
+    $("sort").addEventListener("change", event => { state.sort = event.target.value; render(); });
+    refresh();
+    setInterval(refresh, 2000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Signal Review — Pump Screener</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #e7e8e3;
+      --muted: #8d948f;
+      --surface: #101412;
+      --raised: #171c19;
+      --line: #2a312d;
+      --amber: #f2b84b;
+      --green: #45d483;
+      --red: #f06b64;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 760px;
+      min-height: 640px;
+      background:
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px),
+        var(--surface);
+      background-size: 32px 32px;
+      color: var(--ink);
+      font-family: "Archivo", sans-serif;
+    }
+    button, a { font: inherit; }
+    .shell { display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(16,20,18,.96);
+    }
+    .brand { font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+    .brand::before { content: "●"; color: var(--amber); margin-right: 9px; }
+    .connection { color: var(--muted); font: 12px "IBM Plex Mono", monospace; }
+    .connection.online { color: var(--green); }
+    .header-actions { margin-left: auto; display: flex; gap: 8px; }
+    .subtle-button, .full-link {
+      border: 1px solid var(--line);
+      background: var(--raised);
+      color: var(--ink);
+      padding: 8px 11px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    main { display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: 0; }
+    aside {
+      border-right: 1px solid var(--line);
+      background: rgba(16,20,18,.92);
+      overflow: auto;
+      max-height: calc(100vh - 58px);
+    }
+    .queue-heading {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding: 14px 15px 10px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font: 12px "IBM Plex Mono", monospace;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .queue-item {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px 10px;
+      padding: 13px 15px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+    }
+    .queue-item:hover, .queue-item.selected { background: var(--raised); }
+    .queue-item.selected { box-shadow: inset 3px 0 var(--amber); }
+    .queue-symbol { font-weight: 600; letter-spacing: .025em; }
+    .queue-time, .queue-method { color: var(--muted); font: 11px "IBM Plex Mono", monospace; }
+    .decision-chip {
+      align-self: start;
+      font: 10px "IBM Plex Mono", monospace;
+      letter-spacing: .05em;
+      color: var(--amber);
+    }
+    .decision-chip.trade { color: var(--green); }
+    .decision-chip.ignore { color: var(--red); }
+    .workspace { min-width: 0; display: grid; grid-template-rows: auto minmax(520px, 1fr); }
+    .signal-strip {
+      display: grid;
+      grid-template-columns: minmax(180px, 1.4fr) repeat(5, minmax(86px, .65fr)) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--raised);
+      border-bottom: 1px solid var(--line);
+    }
+    .symbol-block strong { display: block; font-size: 20px; }
+    .symbol-block span, .metric span { color: var(--muted); font: 11px "IBM Plex Mono", monospace; }
+    .metric strong { display: block; margin-top: 3px; font: 13px "IBM Plex Mono", monospace; }
+    .positive { color: var(--green); }
+    .negative { color: var(--red); }
+    .decision-actions { display: flex; gap: 8px; }
+    .decision {
+      min-width: 92px;
+      border: 1px solid currentColor;
+      padding: 11px 14px;
+      background: transparent;
+      color: var(--ink);
+      font-weight: 600;
+      letter-spacing: .06em;
+      cursor: pointer;
+    }
+    .decision.trade { color: var(--green); }
+    .decision.ignore { color: var(--red); }
+    .decision:hover:not(:disabled) { background: currentColor; color: var(--surface); }
+    .decision:disabled { opacity: .35; cursor: not-allowed; }
+    .chart-wrap { position: relative; min-height: 520px; background: #0d100f; }
+    #tradingview-chart, #tradingview-chart > div { width: 100%; height: 100%; min-height: 520px; }
+    .empty {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-content: center;
+      text-align: center;
+      color: var(--muted);
+      font: 13px "IBM Plex Mono", monospace;
+    }
+    @media (max-width: 980px) {
+      main { grid-template-columns: 240px minmax(0, 1fr); }
+      .signal-strip { grid-template-columns: repeat(3, 1fr); }
+      .decision-actions { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand">Signal Review</div>
+      <div id="connection" class="connection">CONNECTING</div>
+      <div class="header-actions">
+        <button id="notifications" class="subtle-button" type="button">Enable desktop alerts</button>
+        <a id="full-chart" class="full-link" href="https://www.tradingview.com/chart/" target="_blank" rel="noopener">Open full TradingView ↗</a>
+      </div>
+    </header>
+    <main>
+      <aside>
+        <div id="queue-heading" class="queue-heading">0 pending · 0 signals</div>
+        <div id="queue"></div>
+      </aside>
+      <section class="workspace">
+        <div class="signal-strip">
+          <div class="symbol-block"><strong id="symbol">WAITING</strong><span id="method">No signal selected</span></div>
+          <div class="metric"><span>ENTRY</span><strong id="entry">—</strong></div>
+          <div class="metric"><span>LAST</span><strong id="last">—</strong></div>
+          <div class="metric"><span>5M MOVE</span><strong id="move5">—</strong></div>
+          <div class="metric"><span>24H MOVE</span><strong id="move24">—</strong></div>
+          <div class="metric"><span>RVOL</span><strong id="rvol">—</strong></div>
+          <div class="decision-actions">
+            <button id="trade" class="decision trade" type="button" disabled>TRADE</button>
+            <button id="ignore" class="decision ignore" type="button" disabled>IGNORE</button>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <div id="tradingview-chart"></div>
+          <div id="empty" class="empty">The next signal will appear here.<br>Screening continues whether this window is open or not.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const state = { rows: [], selectedId: null, knownIds: new Set(), chartSymbol: null };
+    const $ = id => document.getElementById(id);
+
+    function formatPrice(value) {
+      if (!Number.isFinite(value)) return "—";
+      if (value >= 100) return value.toFixed(2);
+      if (value >= 1) return value.toFixed(4);
+      if (value >= .01) return value.toFixed(5);
+      return value.toPrecision(6);
+    }
+    function formatPct(value) {
+      if (!Number.isFinite(value)) return "—";
+      return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
+    }
+    function timeLabel(ms) {
+      return new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date(ms));
+    }
+    function priceClass(value) { return value >= 0 ? "positive" : "negative"; }
+
+    function loadChart(symbol) {
+      if (!symbol || state.chartSymbol === symbol) return;
+      state.chartSymbol = symbol;
+      const host = $("tradingview-chart");
+      host.replaceChildren();
+      const script = document.createElement("script");
+      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+      script.async = true;
+      script.textContent = JSON.stringify({
+        autosize: true,
+        symbol,
+        interval: "1",
+        timezone: "Asia/Kolkata",
+        theme: "dark",
+        style: "1",
+        locale: "en",
+        withdateranges: true,
+        hide_side_toolbar: false,
+        hide_top_toolbar: false,
+        allow_symbol_change: true,
+        save_image: false,
+        calendar: false,
+        support_host: "https://www.tradingview.com"
+      });
+      host.appendChild(script);
+      $("empty").style.display = "none";
+    }
+
+    function selectSignal(id) {
+      state.selectedId = id;
+      const row = state.rows.find(item => item.id === id);
+      if (!row) return;
+      $("symbol").textContent = row.symbol;
+      $("method").textContent = `${row.screener_type.replaceAll("_", " ")} / ${row.entry_type.replaceAll("_", " ")} · ${timeLabel(row.signal_time_ms)} IST`;
+      $("entry").textContent = formatPrice(row.entry_price);
+      $("last").textContent = formatPrice(row.last_price);
+      $("move5").textContent = formatPct(row.return_5m_pct);
+      $("move5").className = priceClass(row.return_5m_pct);
+      $("move24").textContent = formatPct(row.return_24h_pct);
+      $("move24").className = priceClass(row.return_24h_pct);
+      $("rvol").textContent = `${row.rvol.toFixed(2)}×`;
+      const pending = row.review_status === "UNREVIEWED";
+      $("trade").disabled = !pending;
+      $("ignore").disabled = !pending;
+      $("full-chart").href = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(row.tradingview_symbol)}`;
+      loadChart(row.tradingview_symbol);
+      renderQueue();
+    }
+
+    function renderQueue() {
+      const queue = $("queue");
+      queue.replaceChildren();
+      const pending = state.rows.filter(row => row.review_status === "UNREVIEWED").length;
+      $("queue-heading").textContent = `${pending} pending · ${state.rows.length} signals`;
+      for (const row of state.rows) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `queue-item${row.id === state.selectedId ? " selected" : ""}`;
+        button.addEventListener("click", () => selectSignal(row.id));
+        const symbol = document.createElement("span");
+        symbol.className = "queue-symbol";
+        symbol.textContent = row.symbol;
+        const decision = document.createElement("span");
+        decision.className = `decision-chip ${row.review_status.toLowerCase()}`;
+        decision.textContent = row.review_status;
+        const method = document.createElement("span");
+        method.className = "queue-method";
+        method.textContent = row.entry_type.replaceAll("_", " ");
+        const time = document.createElement("span");
+        time.className = "queue-time";
+        time.textContent = `${timeLabel(row.signal_time_ms)} IST`;
+        button.append(symbol, decision, method, time);
+        queue.appendChild(button);
+      }
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch("/api/signals", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const rows = await response.json();
+        $("connection").textContent = "LIVE · NON-BLOCKING";
+        $("connection").className = "connection online";
+        const newRows = rows.filter(row => !state.knownIds.has(row.id));
+        state.rows = rows;
+        rows.forEach(row => state.knownIds.add(row.id));
+        if (!state.selectedId && rows.length) selectSignal(rows[0].id);
+        else if (state.selectedId && !rows.some(row => row.id === state.selectedId)) state.selectedId = null;
+        if (newRows.length && state.selectedId) {
+          const selected = rows.find(row => row.id === state.selectedId);
+          if (!selected || selected.review_status !== "UNREVIEWED") selectSignal(newRows[0].id);
+          if (document.hidden && Notification.permission === "granted") {
+            const newest = newRows[0];
+            new Notification(`LONG signal · ${newest.symbol}`, { body: newest.entry_type.replaceAll("_", " ") });
+          }
+        }
+        const selected = rows.find(row => row.id === state.selectedId);
+        if (selected) {
+          $("last").textContent = formatPrice(selected.last_price);
+          const pending = selected.review_status === "UNREVIEWED";
+          $("trade").disabled = !pending;
+          $("ignore").disabled = !pending;
+        }
+        renderQueue();
+      } catch (error) {
+        $("connection").textContent = "RECONNECTING";
+        $("connection").className = "connection";
+      }
+    }
+
+    async function decide(decision) {
+      if (!state.selectedId) return;
+      const response = await fetch(`/api/signals/${state.selectedId}/decision`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision })
+      });
+      if (response.ok) {
+        await refresh();
+        const next = state.rows.find(row => row.review_status === "UNREVIEWED");
+        if (next) selectSignal(next.id);
+      }
+    }
+
+    $("trade").addEventListener("click", () => decide("TRADE"));
+    $("ignore").addEventListener("click", () => decide("IGNORE"));
+    $("notifications").addEventListener("click", async () => {
+      if (!("Notification" in window)) return;
+      const permission = await Notification.requestPermission();
+      $("notifications").textContent = permission === "granted" ? "Desktop alerts enabled" : "Desktop alerts unavailable";
+    });
+    refresh();
+    setInterval(refresh, 1000);
+  </script>
+</body>
+</html>

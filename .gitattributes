@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.py text diff=python
+*.html text
+*.pyw text
+*.png binary
+*.sqlite3 binary
+*.xlsx binary

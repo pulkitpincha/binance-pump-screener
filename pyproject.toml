@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "binance-pump-screener"
+version = "0.1.0"
+description = "Live Binance USD-M futures pump-event screener and paper-long excursion tracker."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+keywords = ["binance", "crypto", "futures", "market-data", "screener"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Office/Business :: Financial",
+]
+dependencies = [
+  "aiohttp>=3.10,<4",
+  "websockets>=14,<16",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10"]
+
+[project.scripts]
+pump-screener = "pump_screener.cli:main"
+screener = "pump_screener.cli:shortcut_main"
+
+[project.urls]
+Homepage = "https://github.com/pulkitpincha/binance-pump-screener"
+Repository = "https://github.com/pulkitpincha/binance-pump-screener.git"
+Issues = "https://github.com/pulkitpincha/binance-pump-screener/issues"
+
+[tool.setuptools.package-data]
+pump_screener = ["review.html", "positions.html"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

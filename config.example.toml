@@ -1,0 +1,49 @@
+[signal]
+# Strictly greater than this percentage over a rolling five-minute window.
+move_5m_min_pct = 5.0
+
+# The absolute Binance rolling 24-hour percentage move must be below this.
+move_24h_max_pct = 35.0
+
+# RVOL = current Binance 5m quote volume / (rolling 24h quote volume / 288).
+# Set to 0 to record every price signal regardless of RVOL.
+rvol_min = 5.0
+
+# Cumulative paper-trade observation horizons, in minutes.
+horizons_minutes = [5, 15, 30, 60, 240, 720, 1440, 2880, 4320, 10080]
+live_monitoring_minutes = 240
+
+# Stop collecting further observations once a long reaches this drawdown.
+max_drawdown_pct = 10.0
+
+[avwap]
+# Causal one-minute AVWAP trend signals. Reclaims alone never trigger entries.
+enabled = true
+history_minutes = 60
+anchor_lookback_minutes = 30
+breakout_lookback_minutes = 10
+volume_lookback_minutes = 20
+band_stddev = 1.0
+initial_body_min_pct = 0.75
+initial_volume_ratio_min = 3.0
+initial_taker_buy_ratio_min = 0.55
+base_range_max_pct = 6.0
+reexpansion_lookback_minutes = 5
+compression_range_max_pct = 4.0
+mid_touch_tolerance_pct = 0.35
+
+[binance]
+rest_base_url = "https://fapi.binance.com"
+websocket_url = "wss://fstream.binance.com/market/stream"
+quote_asset = "USDT"
+
+# Optional major/non-alt contracts to omit from screening.
+excluded_symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "HYPEUSDT"]
+
+[storage]
+database_path = "data/screener.sqlite3"
+
+[review]
+mode = "review"
+host = "127.0.0.1"
+port = 8765
